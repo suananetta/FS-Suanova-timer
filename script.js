@@ -80,14 +80,23 @@ class TimerView extends HTMLElement {
         this.hours = +initTimeDif[0];
     }
 
-    updateHTML() {
+    updateHTML(updatedPart) {
         let hours = document.querySelector('.timer-body-hours');
         let min = document.querySelector('.timer-body-min');
         let sec = document.querySelector('.timer-body-sec');
 
-        hours.innerHTML =  this.hours < 10? '0' + this.hours + ':' : this.hours + ':';
-        min.innerHTML =  this.minutes < 10? '0' + this.minutes + ':' : this.minutes + ':';
-        sec.innerHTML =  this.seconds < 10? '0' + this.seconds : this.seconds;
+        if(updatedPart === 'seconds') {
+            sec.innerHTML =  this.seconds < 10? '0' + this.seconds : this.seconds;
+        } else if(updatedPart === 'minutes') {
+            sec.innerHTML =  this.seconds < 10? '0' + this.seconds : this.seconds;
+            min.innerHTML =  this.minutes < 10? '0' + this.minutes + ':' : this.minutes + ':';
+        } else if(updatedPart === 'fullTime') {
+            hours.innerHTML =  this.hours < 10? '0' + this.hours + ':' : this.hours + ':';
+            min.innerHTML =  this.minutes < 10? '0' + this.minutes + ':' : this.minutes + ':';
+            sec.innerHTML =  this.seconds < 10? '0' + this.seconds : this.seconds;
+        }
+
+        
     }
 
     startTimer() {
@@ -95,28 +104,29 @@ class TimerView extends HTMLElement {
             if(this.getAttribute('seconds')) {
                 if(this.seconds > 0) {
                     --this.seconds;
-                    this.updateHTML();
+                    this.updateHTML('seconds');
                 } else if(this.seconds === 0 && this.minutes !== 0) {
                     this.seconds = 59;
                     --this.minutes;
-                    this.updateHTML();
+                    this.updateHTML('minutes');
                 } else if(this.minutes === 0 && this.hours !== 0) {
                     this.seconds = 59;
                     this.minutes = 59;
                     --this.hours;
-                    this.updateHTML();
+                    this.updateHTML('fullTime');
                 } else if(this.hours === 0 && this.minutes === 0 && this.seconds === 0) {
                     this.stopTimer();
                 }
             } else {
                 this.getTimeToTime();
-                this.updateHTML()
+                this.updateHTML('fullTime')
             }           
         }, 1000);
     }
 
     pauseTimer() {
         this.interval = clearInterval(this.interval);
+        console.log(pause);
     }
 
     stopTimer() {
