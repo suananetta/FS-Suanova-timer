@@ -29,11 +29,17 @@ timer-view {
     display: flex;
     flex-direction: column;
     align-items: center;
-    font-size: 98px;
+    font-size: 68px;
     font-weight: 700;
     color: white;
     text-shadow: 5px 5px 20px black;
 }
 .timer-body {
     display: flex;
+}
+
+@media (min-width: 600px) {
+    timer-view {
+        font-size: 98px;
+    }
 }
