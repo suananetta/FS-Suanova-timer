@@ -1,6 +1,5 @@
 
 class TimerView extends HTMLElement {
-
     connectedCallback() {
         this._shadow = this.attachShadow({mode: 'closed'});
 
@@ -8,8 +7,14 @@ class TimerView extends HTMLElement {
         slot.setAttribute('name','timer');
         this._shadow.prepend(slot);
 
+        this.initSeconds = 4221;
+        this.initToTime;
+
         const timer = document.createElement('div');
         timer.className = 'timer-body';
+
+        timer.setAttribute('seconds', this.initSeconds? this.initSeconds : '');
+        timer.setAttribute('to-time', this.initToTime? this.initToTime : '');
         timer.setAttribute('slot', 'timer');
 
         this.hours = 0;
@@ -17,10 +22,12 @@ class TimerView extends HTMLElement {
         this.seconds = 0;
         this.interval;
 
-        this.getAttribute('seconds')? this.getTimeBySeconds() : this.getTimeToTime();
+        this.initSeconds? this.getTimeBySeconds(this.initSeconds) : this.getTimeToTime(this.initToTime);
+
+        this.observeAttrChanges();
 
         timer.innerHTML = `
-                <div class="timer-body-hours" style="display: ${+this.hours? 'block' : 'none'}">
+                <div class="timer-body-hours" style="display: ${+this.hours > 0? 'block' : 'none'}">
                     ${this.hours < 10? '0' +  this.hours : this.hours}:
                 </div>
                 <div class="timer-body-min">${this.minutes < 10? '0' + this.minutes : this.minutes}:</div>
@@ -44,7 +51,7 @@ class TimerView extends HTMLElement {
         Array.from(controlButtons).forEach(button => {
             button.addEventListener('click', () => {
                 if(button.id === 'play') {
-                    this.startTimer();
+                   this.startTimer();
                 } else if(button.id === 'pause') {
                     this.pauseTimer();
                 } else if(button.id === 'reset') {
@@ -52,29 +59,25 @@ class TimerView extends HTMLElement {
                 }
             })
         });
-
-        console.log(!this.getAttribute('to-time'));
     }
     
-    getTimeBySeconds() {
-        let initialSec = this.getAttribute('seconds');
-
-        this.seconds = initialSec % 60;
-        this.minutes = Math.floor(initialSec / 60 % 60);
-        this.hours = Math.floor(initialSec / 60 / 60 % 60);     
+    getTimeBySeconds(sec) {
+        this.seconds = sec % 60;
+        this.minutes = Math.floor(sec / 60 % 60);
+        this.hours = Math.floor(sec / 60 / 60 % 60);     
     }
 
-    getTimeToTime() {
-        if(!this.getAttribute('to-time')) return;
+    getTimeToTime(toTime) {
+        if(!toTime) return;
 
-        let initialToTime = this.getAttribute('to-time').split(':');
+        let initialToTime = toTime.split(':');
 
         let currentTime = new Date().getTime();
         let settedTime = new Date().setHours(initialToTime[0], initialToTime[1], initialToTime[2], 0);
 
         let timeDif = new Date(settedTime - currentTime).toISOString().slice(11, -5);
         let initTimeDif = timeDif.split(':');
-
+       
         this.seconds = +initTimeDif[2];
         this.minutes = +initTimeDif[1];
         this.hours = +initTimeDif[0];
@@ -94,14 +97,43 @@ class TimerView extends HTMLElement {
             hours.innerHTML =  this.hours < 10? '0' + this.hours + ':' : this.hours + ':';
             min.innerHTML =  this.minutes < 10? '0' + this.minutes + ':' : this.minutes + ':';
             sec.innerHTML =  this.seconds < 10? '0' + this.seconds : this.seconds;
+        }        
+        
+        this.hours < 0? hours.style.display = "none" : hours.style.display = "block";
+    }
+
+    observeAttrChanges() {
+        let target = document.getElementsByTagName('timer-view')[0];
+
+        const config = {
+            attributes: true,
+            childList: true,
+            subtree: true,
+        };
+
+        const reset = (mutationsList, observer) => {
+            for (let mutation of mutationsList) {
+                if (mutation.type === "attributes") {
+                    Array.from(mutation.target.attributes).forEach(attr => {
+                        if(attr.name === 'seconds') {
+                            this.initSeconds = attr.value;
+                        } else if(attr.name === 'to-time') {
+                            this.initToTime = attr.value;
+                        }
+                    })
+                    this.resetTimer();
+                }
+            }    
         }
 
-        
+        const observer = new MutationObserver(reset);
+
+        observer.observe(target, config);
     }
 
     startTimer() {
         this.interval = setInterval(() => {
-            if(this.getAttribute('seconds')) {
+            if(this.initSeconds) {
                 if(this.seconds > 0) {
                     --this.seconds;
                     this.updateHTML('seconds');
@@ -114,23 +146,26 @@ class TimerView extends HTMLElement {
                     this.minutes = 59;
                     --this.hours;
                     this.updateHTML('fullTime');
-                } else if(this.hours === 0 && this.minutes === 0 && this.seconds === 0) {
-                    this.stopTimer();
-                }
+                } 
             } else {
-                this.getTimeToTime();
-                this.updateHTML('fullTime')
-            }           
+                this.getTimeToTime(this.initToTime);
+                this.updateHTML('fullTime');
+            } 
+            
+            if(this.hours === 0 && this.minutes === 0 && this.seconds === 0) {
+                this.stopTimer();
+            }
+            
         }, 1000);
     }
 
     pauseTimer() {
         this.interval = clearInterval(this.interval);
-        console.log(pause);
     }
 
     stopTimer() {
         clearInterval(this.interval);
+        console.log('end of countdown');
         this.hours =  0;
         this.minutes =  0;
         this.seconds =  0;
@@ -138,8 +173,9 @@ class TimerView extends HTMLElement {
 
     resetTimer() {
         clearInterval(this.interval);
-        this.getAttribute('seconds')? this.getTimeBySeconds() : this.getTimeToTime();
-        this.updateHTML()
+        this.getTimeBySeconds(this.initSeconds);
+        this.getTimeToTime(this.initToTime);
+        this.updateHTML('fullTime');
     }
 
 }
